@@ -1,24 +1,20 @@
 use num::Complex;
 use image;
 use Vec;
+use std::{thread, time};
 
 mod helper;
 
 // Setup constants
-const MAX_ITERATIONS: u32 = 100;
-const SIZE: usize = 800;
-const VIEWMINX: f64 = -2.25;    // X
-const VIEWMAXX: f64 = 0.75;
-const VIEWMINY: f64 = -1.25;     // Y
-const VIEWMAXY: f64 = 1.25;
+const MAX_ITERATIONS: u32 = 400;
+const SIZE: usize = 600;
 
-
-// Mandelbrot z' = z^2 + c
+// Mandelbrot z' = z^2 + C
 fn f(z: Complex<f64>, c: Complex<f64>) -> Complex<f64> {
     z.powu(2) + c
 }
 
-// Get numer of iterations required
+// Get numer of iterations required for any complex number C
 fn iter(c: Complex<f64>) -> u32 {
     let mut result = Complex::new(0.0, 0.0);
     let mut n = 0;
@@ -36,14 +32,35 @@ fn iter(c: Complex<f64>) -> u32 {
 }
 
 // This produces the nice fractal
-fn to_rgb(it: u32) -> u8 {
-    if it == MAX_ITERATIONS { 255 } 
-    else { 0 }
+fn to_rgb(it: u32) -> Vec<u8> {
+    if !(it < MAX_ITERATIONS) {return vec![0, 0, 0]}
+
+    let i = it % 16;
+
+    match i {
+        0 => vec![66, 30, 15],
+        1 => vec![25, 7, 26],
+        2 => vec![9, 1, 47],
+        3 => vec![4, 4, 73],
+        4 => vec![0, 7, 100],
+        5 => vec![12, 44, 138],
+        6 => vec![24, 82, 177],
+        7 => vec![57, 125, 209],
+        8 => vec![134, 181, 229],
+        9 => vec![211, 236, 248],
+        10 => vec![241, 233, 191],
+        11 => vec![248, 201, 95],
+        12 => vec![255, 170, 0],
+        13 => vec![204, 128, 0],
+        14 => vec![153, 87, 0],
+        15 => vec![106, 52, 3],
+        _ => vec![0, 0, 0],
+    }
 }
 
-fn main() {
-    let re = helper::linspace(VIEWMINX, VIEWMAXX, SIZE);
-    let im = helper::linspace(VIEWMINY, VIEWMAXY, SIZE);
+fn brot(zoom: f64, zoom_point_x: f64, zoom_point_y: f64) {
+    let re = helper::linspace(zoom_point_x - (2.0 / zoom), zoom_point_x + (1.0 / zoom), SIZE);
+    let im = helper::linspace(zoom_point_y - (1.5 / zoom), zoom_point_y + (1.5 / zoom), SIZE);
 
     let mut nums: Vec<Complex<f64>> = Vec::new();
     nums.resize(SIZE * SIZE, Complex::new(0.0, 0.0));
@@ -58,12 +75,30 @@ fn main() {
     let itered: Vec<_> = nums.iter().map(|x| iter(*x)).collect(); // Iterated complex nums 
 
     // Create and write image
-    let colors: Vec<u8> = itered.iter().map(|x| to_rgb(*x)).collect();
+    let colors: Vec<Vec<u8>> = itered.iter().map(|x| to_rgb(*x)).collect();
 
-    let mut imgbuf = image::GrayImage::new(SIZE as u32, SIZE as u32);
+    let mut imgbuf = image::ImageBuffer::new(SIZE as u32, SIZE as u32);
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-        *pixel = image::Luma([colors[(x * SIZE as u32 + y) as usize]]);
+        let color = &colors[(x * SIZE as u32 + y) as usize];
+        *pixel = image::Rgb([
+            color[0],
+            color[1],
+            color[2],
+        ]);
     }
 
-    imgbuf.save("mandelbrot.png").unwrap();
+    imgbuf.save(format!("render/mandelbrot-{}.png", zoom)).unwrap();
+
+    println!(
+        "Rendered mendelbrot. Re min: {} Re max: {} Im min: {} Im max: {}", 
+        zoom_point_x - (2.0 / zoom), 
+        zoom_point_x + (1.0 / zoom), 
+        zoom_point_y - (1.5 / zoom), 
+        zoom_point_y + (1.5 / zoom)
+    );
+}
+
+fn main() {
+    brot(1.5, -0.25, 0.0);
+
 }

@@ -9,5 +9,3 @@ edition = "2018"
 [dependencies]
 num = "*"
 image = "*"
-itertools-num = "*"
-itertools = "*"
