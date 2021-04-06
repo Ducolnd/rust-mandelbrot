@@ -2,12 +2,13 @@ use num::Complex;
 use image;
 use Vec;
 use std::{thread, time};
+use std::f64::consts::E;
 
 mod helper;
 
 // Setup constants
 const MAX_ITERATIONS: u32 = 400;
-const SIZE: usize = 600;
+const SIZE: usize = 800;
 
 // Mandelbrot z' = z^2 + C
 fn f(z: Complex<f64>, c: Complex<f64>) -> Complex<f64> {
@@ -90,15 +91,17 @@ fn brot(zoom: f64, zoom_point_x: f64, zoom_point_y: f64) {
     imgbuf.save(format!("render/mandelbrot-{}.png", zoom)).unwrap();
 
     println!(
-        "Rendered mendelbrot. Re min: {} Re max: {} Im min: {} Im max: {}", 
+        "Rendered mendelbrot. Re min: {} Re max: {} Im min: {} Im max: {} at {}", 
         zoom_point_x - (2.0 / zoom), 
         zoom_point_x + (1.0 / zoom), 
         zoom_point_y - (1.5 / zoom), 
-        zoom_point_y + (1.5 / zoom)
+        zoom_point_y + (1.5 / zoom),
+        format!("render/mandelbrot-{}.png", zoom)
     );
 }
 
 fn main() {
-    brot(1.5, -0.25, 0.0);
-
+    for i in (1..20).step_by(1) {
+        brot((i * i * i) as f64, -0.77568377, 0.13646737);
+    }
 }
