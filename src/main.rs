@@ -1,14 +1,18 @@
 use num::Complex;
 use image;
 use Vec;
-use std::{thread, time};
+use std::{iter, thread, time::Duration, thread::JoinHandle};
 use std::f64::consts::E;
+use std::fs;
 
 mod helper;
 
 // Setup constants
-const MAX_ITERATIONS: u32 = 400;
-const SIZE: usize = 800;
+const MAX_ITERATIONS: u32 = 500;
+const SIZE: usize = 600;
+const IMAGES: usize = 50;
+const MAX_ZOOM: f64 = 50.0;
+const SET_NAME: &str = "Mandelbrot";
 
 // Mandelbrot z' = z^2 + C
 fn f(z: Complex<f64>, c: Complex<f64>) -> Complex<f64> {
@@ -88,7 +92,8 @@ fn brot(zoom: f64, zoom_point_x: f64, zoom_point_y: f64) {
         ]);
     }
 
-    imgbuf.save(format!("render/mandelbrot-{}.png", zoom)).unwrap();
+    fs::create_dir_all(format!("render/{}/", SET_NAME));
+    imgbuf.save(format!("render/{}/mandelbrot-{}.png", SET_NAME, zoom)).unwrap();
 
     println!(
         "Rendered mendelbrot. Re min: {} Re max: {} Im min: {} Im max: {} at {}", 
@@ -101,7 +106,18 @@ fn brot(zoom: f64, zoom_point_x: f64, zoom_point_y: f64) {
 }
 
 fn main() {
-    for i in (1..20).step_by(1) {
-        brot((i * i * i) as f64, -0.77568377, 0.13646737);
+    let mut threads: Vec<_> = Vec::new();
+    let range = helper::linspace(1.0, MAX_ZOOM, IMAGES);
+    
+    for x in range {
+        threads.push(thread::spawn(move || {
+            println!("Started with {}", x);
+            brot(0.45 + (f64::powf(x as f64, 5.0) / 10000.0), -0.77568377, 0.13646737);
+            println!("Ended with {}", x);
+        }));
+    }
+
+    for handle in threads {
+        handle.join().unwrap()
     }
 }
