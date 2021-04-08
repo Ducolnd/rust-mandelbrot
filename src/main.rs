@@ -1,18 +1,14 @@
 use num::Complex;
 use image;
 use Vec;
-use std::{iter, thread, time::Duration, thread::JoinHandle};
-use std::f64::consts::E;
+use std::{thread};
 use std::fs;
+use image::imageops;
 
 mod helper;
+mod constants;
 
-// Setup constants
-const MAX_ITERATIONS: u32 = 500;
-const SIZE: usize = 600;
-const IMAGES: usize = 50;
-const MAX_ZOOM: f64 = 50.0;
-const SET_NAME: &str = "Mandelbrot";
+use constants::*;
 
 // Mandelbrot z' = z^2 + C
 fn f(z: Complex<f64>, c: Complex<f64>) -> Complex<f64> {
@@ -36,34 +32,7 @@ fn iter(c: Complex<f64>) -> u32 {
     n
 }
 
-// This produces the nice fractal
-fn to_rgb(it: u32) -> Vec<u8> {
-    if !(it < MAX_ITERATIONS) {return vec![0, 0, 0]}
-
-    let i = it % 16;
-
-    match i {
-        0 => vec![66, 30, 15],
-        1 => vec![25, 7, 26],
-        2 => vec![9, 1, 47],
-        3 => vec![4, 4, 73],
-        4 => vec![0, 7, 100],
-        5 => vec![12, 44, 138],
-        6 => vec![24, 82, 177],
-        7 => vec![57, 125, 209],
-        8 => vec![134, 181, 229],
-        9 => vec![211, 236, 248],
-        10 => vec![241, 233, 191],
-        11 => vec![248, 201, 95],
-        12 => vec![255, 170, 0],
-        13 => vec![204, 128, 0],
-        14 => vec![153, 87, 0],
-        15 => vec![106, 52, 3],
-        _ => vec![0, 0, 0],
-    }
-}
-
-fn brot(zoom: f64, zoom_point_x: f64, zoom_point_y: f64) {
+fn brot(zoom: f64, zoom_point_x: f64, zoom_point_y: f64, with_colors: &Vec<[u8; 3]>) {
     let re = helper::linspace(zoom_point_x - (2.0 / zoom), zoom_point_x + (1.0 / zoom), SIZE);
     let im = helper::linspace(zoom_point_y - (1.5 / zoom), zoom_point_y + (1.5 / zoom), SIZE);
 
@@ -80,18 +49,17 @@ fn brot(zoom: f64, zoom_point_x: f64, zoom_point_y: f64) {
     let itered: Vec<_> = nums.iter().map(|x| iter(*x)).collect(); // Iterated complex nums 
 
     // Create and write image
-    let colors: Vec<Vec<u8>> = itered.iter().map(|x| to_rgb(*x)).collect();
+    let colors: Vec<[u8; 3]> = itered.iter().map(|x| helper::to_rgb(*x, with_colors)).collect();
 
     let mut imgbuf = image::ImageBuffer::new(SIZE as u32, SIZE as u32);
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
         let color = &colors[(x * SIZE as u32 + y) as usize];
-        *pixel = image::Rgb([
-            color[0],
-            color[1],
-            color[2],
-        ]);
+        *pixel = image::Rgb(*color);
     }
 
+
+    imgbuf = imageops::unsharpen(&imgbuf, 0.8, 2);
+    
     fs::create_dir_all(format!("render/{}/", SET_NAME));
     imgbuf.save(format!("render/{}/mandelbrot-{}.png", SET_NAME, zoom)).unwrap();
 
@@ -106,13 +74,18 @@ fn brot(zoom: f64, zoom_point_x: f64, zoom_point_y: f64) {
 }
 
 fn main() {
+    let colors = helper::init_colors("colors.txt");
+
+
     let mut threads: Vec<_> = Vec::new();
     let range = helper::linspace(1.0, MAX_ZOOM, IMAGES);
     
     for x in range {
+        let c = colors.clone();
+
         threads.push(thread::spawn(move || {
             println!("Started with {}", x);
-            brot(0.45 + (f64::powf(x as f64, 5.0) / 10000.0), -0.77568377, 0.13646737);
+            brot(0.8 + (f64::powf(x as f64, 6.0) / 10000.0), 0.3602404434376143632361252444495453084826078079585857504883758147401953460592181003117529367227734263962337317297249877373200353726832853176645324012185215795, -0.6413130610648031748603750151793020665794949522823052595561775430644485741727536902556370230689681162370740565537072149790106973211105273740851993394803287437606238596262, &c);
             println!("Ended with {}", x);
         }));
     }
