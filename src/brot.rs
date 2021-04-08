@@ -26,9 +26,9 @@ fn iter(c: Complex<f64>) -> u32 {
     n
 }
 
-pub fn brot(zoom: f64, zoom_point_x: f64, zoom_point_y: f64, with_colors: &Vec<[u8; 3]>) -> image::ImageBuffer<image::Rgb<u8>, Vec<u8>> {
-    let re = helper::linspace(zoom_point_x - (2.0 / zoom), zoom_point_x + (1.0 / zoom), SIZE);
-    let im = helper::linspace(zoom_point_y - (1.5 / zoom), zoom_point_y + (1.5 / zoom), SIZE);
+pub fn brot(zoom: u32, zoom_point_x: f64, zoom_point_y: f64, with_colors: &Vec<[u8; 3]>) -> image::ImageBuffer<image::Rgb<u8>, Vec<u8>> {
+    let re = helper::linspace(zoom_point_x - (2.0 * f64::powf(DELETION_FACTOR, zoom as f64)), zoom_point_x + (1.0 * f64::powf(DELETION_FACTOR, zoom as f64)), SIZE);
+    let im = helper::linspace(zoom_point_y - (1.5 * f64::powf(DELETION_FACTOR, zoom as f64)), zoom_point_y + (1.5 * f64::powf(DELETION_FACTOR, zoom as f64)), SIZE);
 
     let mut nums: Vec<Complex<f64>> = Vec::new();
     nums.resize(SIZE * SIZE, Complex::new(0.0, 0.0));
