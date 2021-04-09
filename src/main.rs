@@ -3,8 +3,6 @@ use gif::Encoder;
 use std::fs::File;
 use Vec;
 use std::{thread};
-use std::fs;
-use std::collections::HashMap;
 
 mod helper;
 mod constants;
@@ -19,7 +17,7 @@ fn main() {
     let range: Vec<u32> = (0..MAX_ZOOM as u32).collect();
 
     let output = File::create(format!("render/gif/{}.gif", SET_NAME)).unwrap();
-    let mut gif = Encoder::new(output, SIZE as u16, SIZE as u16, &[]).unwrap();
+    let mut gif = Encoder::new(output, WIDTH as u16, HEIGHT as u16, &[]).unwrap();
     gif.set_repeat(gif::Repeat::Infinite).unwrap();
     
     for x in range {
@@ -34,21 +32,15 @@ fn main() {
         }));
     }
 
-    let mut frames: Vec<image::ImageBuffer<image::Rgb<u8>, std::vec::Vec<u8>>> = Vec::new();
-
     // Wait for the threads to finish and order them
     for handle in threads {
         let buf = handle.join().unwrap();
 
-        frames.push(buf);
-    }    
-    
-    for frame in frames {
         println!("Load a frame");
-        let mut gifframe = gif::Frame::from_rgb_speed(SIZE as u16, SIZE as u16, &frame.into_vec(), 5);
-        gifframe.delay = 30;
+        let mut gifframe = gif::Frame::from_rgb_speed(WIDTH as u16, HEIGHT as u16, &buf.into_vec(), 30);
+        gifframe.delay = FRAME_TIME;
     
         println!("Wrote a frame");
         gif.write_frame(&gifframe);
-    }
+    }    
 }
