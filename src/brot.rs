@@ -26,40 +26,22 @@ fn iter(c: Complex<f64>) -> u32 {
     n
 }
 
-pub fn brot(zoom: u32, zoom_point_x: f64, zoom_point_y: f64, with_colors: &Vec<[u8; 3]>) -> image::ImageBuffer<image::Rgb<u8>, Vec<u8>> {
+pub fn brot(zoom: i32, zoom_point_x: f64, zoom_point_y: f64, with_colors: &Vec<[u8; 3]>) -> image::ImageBuffer<image::Rgb<u8>, Vec<u8>> {
     let factor = WIDTH as f64 / HEIGHT as f64;
-
-    let re = helper::linspace(
-        zoom_point_x - (2.0 * factor * f64::powf(DELETION_FACTOR, zoom as f64)), 
-        zoom_point_x + (2.0 * factor * f64::powf(DELETION_FACTOR, zoom as f64)), 
-        WIDTH
-    );
-
-    let im = helper::linspace(
-        zoom_point_y - (2.0 * f64::powf(DELETION_FACTOR, zoom as f64)), 
-        zoom_point_y + (2.0 * f64::powf(DELETION_FACTOR, zoom as f64)), 
-        HEIGHT
-    );
-
-    let mut nums: Vec<Complex<f64>> = Vec::new();
-    nums.resize(WIDTH * HEIGHT, Complex::new(0.0, 0.0));
-
-    // a + bi
-    for (posb, b) in im.iter().enumerate() {
-        for (posa, a) in re.iter().enumerate() {
-            nums[posa * HEIGHT + posb] = Complex::new(*a, *b);
-        }
-    }
-
-    let itered: Vec<_> = nums.iter().map(|x| iter(*x)).collect(); // Iterated complex nums 
-
-    // Create and write image
-    let colors: Vec<[u8; 3]> = itered.iter().map(|x| helper::to_rgb(*x, with_colors)).collect();
+    let half_width = WIDTH as f64 / 2.0;
+    let half_height = HEIGHT as f64 / 2.0;
+    let deletion = f64::powf(DELETION_FACTOR, zoom as f64);
 
     let mut imgbuf = image::ImageBuffer::new(WIDTH as u32, HEIGHT as u32);
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-        let color = &colors[(x * HEIGHT as u32 + y) as usize];
-        *pixel = image::Rgb(*color);
+        // Determine coordinates for z = a + bi
+        let a = zoom_point_x + ((x as f64 - WIDTH as f64 / 2.0) / half_width) * 2.0 * factor * deletion;
+        let b = zoom_point_y + ((y as f64 - HEIGHT as f64 / 2.0) / half_height) * 2.0 * deletion;
+
+        // Determine color of coordinate from the number of iterations
+        let color = helper::to_rgb(iter(Complex::new(a, b)), with_colors);
+
+        *pixel = image::Rgb(color);
     }
     
     imgbuf    
