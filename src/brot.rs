@@ -9,6 +9,27 @@ fn f(z: Complex<f64>, c: Complex<f64>) -> Complex<f64> {
     z.powu(2) + c
 }
 
+#[cfg(feature = "linear")]
+fn iter(c: Complex<f64>) -> f64 {
+    let mut result = Complex::new(0.0, 0.0);
+    let mut n = 0;
+    let mut pow = 1.0;
+    let mut norm = 0.0;
+
+    loop {
+        result = f(result, c);
+        n += 1;
+        norm = result.norm();
+
+        if (n >= MAX_ITERATIONS) || (result.norm() > 1000.0) {
+            break
+        }
+    }
+
+    (norm * norm).log(10.0) / 2.0
+}
+
+#[cfg(feature = "non-linear")]
 // Get numer of iterations required for any complex number C
 fn iter(c: Complex<f64>) -> u32 {
     let mut result = Complex::new(0.0, 0.0);
@@ -39,6 +60,9 @@ pub fn brot(zoom: i32, zoom_point_x: f64, zoom_point_y: f64, with_colors: &Vec<[
         let b = zoom_point_y + ((y as f64 - HEIGHT as f64 / 2.0) / half_height) * 2.0 * deletion;
 
         // Determine color of coordinate from the number of iterations
+        #[cfg(feature = "linear")]
+        let color = helper::to_rgb(iter(Complex::new(a, b)));
+        #[cfg(feature = "non-linear")]
         let color = helper::to_rgb(iter(Complex::new(a, b)), with_colors);
 
         *pixel = image::Rgb(color);
