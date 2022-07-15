@@ -1,8 +1,9 @@
-use gif::Encoder;
+use gif::{Encoder, Repeat};
 use std::fs;
 use std::fs::File;
 use Vec;
 use std::{thread};
+
 
 mod helper;
 mod constants;
@@ -19,9 +20,6 @@ fn main() -> std::io::Result<()>{
     let mut threads: Vec<_> = Vec::new();
     let range: Vec<i32> = (START_ZOOM..END_ZOOM).collect();
 
-    // let output = File::create(format!("../render/gif/{}.gif", SET_NAME)).unwrap();
-    // let mut gif = Encoder::new(output, WIDTH as u16, HEIGHT as u16, &[]).unwrap();
-    // gif.set_repeat(gif::Repeat::Infinite).unwrap();
     
     fs::create_dir_all(format!("render/{}", SET_NAME))?;
 
@@ -36,20 +34,30 @@ fn main() -> std::io::Result<()>{
 
             imgbuf.save(format!("render/{}/frame-{:04}.png", SET_NAME, x + -1 * START_ZOOM)).unwrap();
 
-            // let mut gifframe = gif::Frame::from_rgb_speed(WIDTH as u16, HEIGHT as u16, &imgbuf.into_vec(), 28);
-            // gifframe.delay = FRAME_TIME;
-            // println!("Loaded frame {}", x);
+            let mut gifframe = gif::Frame::from_rgb_speed(WIDTH as u16, HEIGHT as u16, &imgbuf.into_vec(), 28);
+
+            gifframe.delay = FRAME_TIME;
+
+            println!("Loaded frame {}", x);
             
-            // return gifframe
+            return gifframe
         }));
     }
 
+    let mut image = File::create("render/mandelbrot.gif").unwrap();
+    let mut encoder = Encoder::new(&mut image, WIDTH as u16, HEIGHT as u16, &[]).unwrap();
+
+    encoder.set_repeat(Repeat::Infinite).unwrap();
+   
     // Wait for the threads to finish
     for handle in threads {
-        let frame = handle.join().unwrap();
-
-        // gif.write_frame(&frame);
+        let handle_join = handle.join().expect("Error while joining the handle");
+        
+        match encoder.write_frame(&handle_join){
+           _=>continue,
+        }
     } 
+    
     
     Ok(())
 }
